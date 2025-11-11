@@ -11,21 +11,13 @@ class DragArea extends StatefulWidget {
 
   final DraggableRouteSettings? settings;
 
-  const DragArea({
-    super.key,
-    required this.child,
-    this.settings,
-  });
+  const DragArea({super.key, required this.child, this.settings});
 
   @override
   State<DragArea> createState() => _DragAreaState();
 }
 
-enum _Edge {
-  start,
-  middle,
-  end;
-}
+enum _Edge { start, middle, end }
 
 class _DragAreaState extends State<DragArea> {
   Set<BuildContext> horizontal = {};
@@ -56,24 +48,19 @@ class _DragAreaState extends State<DragArea> {
 
     if (ro != null) {
       final result = BoxHitTestResult();
-      final localPosition = Vector3(position.dx, position.dy, 0) -
-          ro.getTransformTo(null).getTranslation();
+      final localPosition = Vector3(position.dx, position.dy, 0) - ro.getTransformTo(null).getTranslation();
 
-      final hitted = ro.hitTest(
-        result,
-        position: Offset(localPosition.x, localPosition.y),
-      );
+      final hitted = ro.hitTest(result, position: Offset(localPosition.x, localPosition.y));
 
       if (hitted) {
         _Edge edge;
         final metrics = state.position;
 
-        var offset = (state.position.pixels - state.position.minScrollExtent) /
+        var offset =
+            (state.position.pixels - state.position.minScrollExtent) /
             (state.position.maxScrollExtent - state.position.minScrollExtent);
 
-        DraggableRouteScrollResolverState? findCustomResolver(
-          BuildContext context,
-        ) {
+        DraggableRouteScrollResolverState? findCustomResolver(BuildContext context) {
           final resolver = context.read<DraggableRouteScrollResolverState?>();
           if (resolver == null) return null;
           if (resolver.axis != state.position.axis) {
@@ -106,7 +93,8 @@ class _DragAreaState extends State<DragArea> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = widget.settings ?? //
+    final settings =
+        widget.settings ?? //
         DraggableRouteTheme.of(context).settings;
 
     return Listener(
@@ -139,19 +127,14 @@ class _DragAreaState extends State<DragArea> {
       },
       child: RawGestureDetector(
         gestures: {
-          _PanGestureRecognizer:
-              GestureRecognizerFactoryWithHandlers<_PanGestureRecognizer>(
-            () => _PanGestureRecognizer(
-              () => horizontalEdge,
-              () => verticalEdge,
-              settings.edgeSlop,
-              settings.slop,
-            ),
-            (instance) => instance //
-              ..onStart = onPanStart
-              ..onCancel = onPanCancel
-              ..onUpdate = onPanUpdate
-              ..onEnd = onPanEnd,
+          _PanGestureRecognizer: GestureRecognizerFactoryWithHandlers<_PanGestureRecognizer>(
+            () => _PanGestureRecognizer(() => horizontalEdge, () => verticalEdge, settings.edgeSlop, settings.slop),
+            (instance) =>
+                instance //
+                  ..onStart = onPanStart
+                  ..onCancel = onPanCancel
+                  ..onUpdate = onPanUpdate
+                  ..onEnd = onPanEnd,
           ),
         },
         child: ScrollConfiguration(
@@ -161,8 +144,7 @@ class _DragAreaState extends State<DragArea> {
               if (notification is ScrollMetricsNotification) {
                 final axis = notification.metrics.axis;
                 ScrollableState? findTopMostScrollable(BuildContext context) {
-                  final state =
-                      context.findAncestorStateOfType<ScrollableState>();
+                  final state = context.findAncestorStateOfType<ScrollableState>();
 
                   if (state == null) return null;
                   if (state.position.axis != axis) {
@@ -172,8 +154,9 @@ class _DragAreaState extends State<DragArea> {
                   return state;
                 }
 
-                var scrollable = findTopMostScrollable(notification.context) //
-                    ?.context;
+                var scrollable =
+                    findTopMostScrollable(notification.context) //
+                        ?.context;
 
                 if (scrollable != null) {
                   switch (notification.metrics.axis) {
@@ -230,30 +213,19 @@ class _DraggableScrollPhysics extends ClampingScrollPhysics {
   const _DraggableScrollPhysics();
 }
 
-class _PanGestureRecognizer extends PanGestureRecognizer {
+class _PanGestureRecognizer extends VerticalDragGestureRecognizer {
   final ValueGetter<_Edge?> horizontalEdge;
   final ValueGetter<_Edge?> verticalEdge;
 
   final double edgeSlop;
   final double defaultSlop;
 
-  _PanGestureRecognizer(
-    this.horizontalEdge,
-    this.verticalEdge,
-    this.edgeSlop,
-    this.defaultSlop,
-  );
+  _PanGestureRecognizer(this.horizontalEdge, this.verticalEdge, this.edgeSlop, this.defaultSlop);
 
   @override
-  bool hasSufficientGlobalDistanceToAccept(
-    PointerDeviceKind pointerDeviceKind,
-    double? deviceTouchSlop,
-  ) {
+  bool hasSufficientGlobalDistanceToAccept(PointerDeviceKind pointerDeviceKind, double? deviceTouchSlop) {
     if (horizontalEdge() == _Edge.middle && verticalEdge() == _Edge.middle) {
-      return super.hasSufficientGlobalDistanceToAccept(
-        pointerDeviceKind,
-        deviceTouchSlop,
-      );
+      return super.hasSufficientGlobalDistanceToAccept(pointerDeviceKind, deviceTouchSlop);
     }
 
     var delta = (finalPosition.global - initialPosition.global);
@@ -265,14 +237,8 @@ class _PanGestureRecognizer extends PanGestureRecognizer {
       _ => defaultSlop,
     };
 
-    var xSlop = switch (horizontalEdge()) {
-      _Edge.start when delta.dx > 0 => edgeSlop,
-      _Edge.end when delta.dx < 0 => edgeSlop,
-      null => edgeSlop,
-      _ => defaultSlop,
-    };
-
-    final slop = delta.dx.abs() > delta.dy.abs() ? xSlop : ySlop;
+    // vertical-only
+    final slop = ySlop;
 
     return globalDistanceMoved.abs() > slop;
   }
